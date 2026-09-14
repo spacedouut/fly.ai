@@ -32,6 +32,12 @@ def main() -> None:
     parser.add_argument("--lead-ms", type=float, default=80)
     parser.add_argument("--threshold", type=float, default=0.5)
     parser.add_argument(
+        "--arm-after", type=float, help="Arm after N seconds instead of pressing F8"
+    )
+    parser.add_argument(
+        "--frames-dir", type=Path, help="Save sampled perception frames for debugging"
+    )
+    parser.add_argument(
         "--log", type=Path, default=Path("osu_fly/output/vision-play.json")
     )
     args = parser.parse_args()
@@ -41,6 +47,9 @@ def main() -> None:
     brain = CursorBrain(seed=args.seed) if args.decoder else None
     decoder = Decoder.load(args.decoder) if args.decoder else None
     rows = []
+    saved_at = 0.0
+    if args.frames_dir:
+        args.frames_dir.mkdir(parents=True, exist_ok=True)
     try:
         if brain is not None:
             for _ in range(100):
@@ -50,7 +59,14 @@ def main() -> None:
             f"Rect {desktop.rect}. Press F8 in osu! to start; Escape/focus loss stops.",
             flush=True,
         )
-        while not desktop.key_down(desktop.start_key):
+        arm_at = (
+            time.monotonic() + args.arm_after if args.arm_after is not None else None
+        )
+        while (
+            time.monotonic() < arm_at
+            if arm_at is not None
+            else not desktop.key_down(desktop.start_key)
+        ):
             if desktop.key_down(desktop.escape):
                 return
             time.sleep(0.01)
@@ -94,6 +110,11 @@ def main() -> None:
                         "neural_emit_ms": (emitted - detected) * 1000,
                     }
                 )
+                if args.frames_dir and captured - saved_at >= 0.1:
+                    cv2.imwrite(
+                        str(args.frames_dir / f"{captured - start:.3f}.png"), image
+                    )
+                    saved_at = captured
                 time.sleep(max(0, 0.020 - (time.monotonic() - begin)))
         print(
             f"Finished: {len(rows)} frames; {controller.taps} visual tap events.",

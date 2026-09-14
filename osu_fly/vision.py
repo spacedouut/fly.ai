@@ -63,7 +63,7 @@ class CircleDetector:
             base = peaks[(radii[peaks] >= 22) & (radii[peaks] <= 62)]
             if not len(base):
                 continue
-            radius = float(radii[base[radii[base] <= radii[base[0]] + 5][-1]])
+            radius = float(radii[base[-1]])
             outer = peaks[(radii[peaks] > radius + 6) & (radii[peaks] < radius * 4.5)]
             approach = None
             if len(outer):
@@ -116,7 +116,7 @@ class VisionController:
                 track
                 for track in unmatched
                 if np.hypot(track.circle.x - circle.x, track.circle.y - circle.y) < 9
-                and abs(track.circle.radius - circle.radius) < 12
+                and abs(track.circle.radius - circle.radius) < 30
             ]
             if matches:
                 track = min(

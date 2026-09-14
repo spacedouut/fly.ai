@@ -34,6 +34,19 @@ def test_detects_concentric_target_at_arbitrary_position():
     assert target.approach is not None and abs(target.approach - 90) < 4
 
 
+def test_hit_circle_decoration_does_not_replace_the_approach_ring() -> None:
+    image = np.zeros((384, 512, 3), dtype=np.uint8)
+    cv2.circle(image, (310, 140), 40, (220, 220, 220), 2)
+    cv2.circle(image, (310, 140), 35, (160, 160, 160), -1)
+    cv2.circle(image, (310, 140), 28, (90, 90, 90), -1)
+    cv2.circle(image, (310, 140), 100, (110, 110, 110), 2)
+    detections = CircleDetector().detect(image)
+    target = min(detections, key=lambda c: np.hypot(c.x - 310, c.y - 140))
+    assert 37 < target.radius < 44
+    assert target.approach is not None
+    assert abs(target.approach - 100) < 4
+
+
 def test_visual_countdown_taps_once_without_song_clock():
     controller = VisionController(lead=0.06)
     taps = []

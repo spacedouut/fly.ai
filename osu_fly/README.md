@@ -153,11 +153,15 @@ NUMBA_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
   --decoder osu_fly/output/vision/decoder.npz --seed 100
 ```
 
-Wait for “Ready”, focus the game, start the map, and press F8. F8 only arms screen
+Wait for “Ready”, focus the game, start the map, and press F8 after loading. F8 only arms screen
 capture; its timing relative to the song is unimportant. Use the same fullscreen
 and mouse settings as above. Escape or focus loss stops input and releases Z.
 The default runtime is 160 seconds; `--seconds` changes it. `--rect` overrides the
 playfield crop, and `--lead-ms` adjusts visual anticipation for neural latency.
+Alternatively, `--arm-after 10` arms automatically ten seconds after “Ready”;
+this avoids opening lazer chat by pressing F8 during loading. The game must have
+focus when the countdown expires. `--frames-dir` saves sampled perception images
+for debugging (cropped images, not a fullscreen gameplay recording).
 
 For a separately labelled **non-neural diagnostic baseline**:
 
