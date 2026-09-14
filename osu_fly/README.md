@@ -194,6 +194,33 @@ tutorial storyboard demonstrations, HUD circles, occlusion and low capture rates
 can confuse the detector. It is not yet a general osu! player. Offline motor
 validation and synthetic circle tests do not establish real gameplay performance.
 
+### Recorded vision results
+
+Revision `1566899`, osu!lazer 2026.804.2, Guest, no mods, normal speed,
+1024×768 fullscreen/VSync. Both neural attempts used the same synthetic decoder
+and seed 100, with no map-derived controller input.
+
+| Mode and map | Outcome | Accuracy | Score | Max combo | Misses |
+|---|---|---:|---:|---:|---:|
+| Detector-only tutorial | D, completed | 29.27% | 28,417 | 8/73 | 6 |
+| Live neural vision tutorial | D, completed | 19.90% | 18,906 | 8/73 | 7 |
+| Live neural vision, Faded Winter [Beginner] | Failed at 0:35 (71%) | 14.89% partial | 6,856 partial | 4 | Unavailable |
+
+The tutorial has zero HP drain, so completion alone is weak evidence. Both modes
+scored zero slider ticks, slider ends, and spinner spins. Real visual input did
+produce neural cursor movement and registered hits, but performance remains poor.
+The detector baseline also struggled, so neural decoding is not the only problem.
+
+The held-out attempt included about 12 seconds of song-select input before
+gameplay; its startup was not cleanly aligned to the intended countdown. The
+failure overlay did not provide a miss count. It was not retrained or retried.
+No renewed audio warning appeared in these runs. Changing cursor pixels mean
+the absence of identical neural screenshots cannot establish smooth rendering.
+
+Separate live checks confirmed Z was held before Escape and focus loss, then
+released within 2.9 ms and 19.7 ms respectively, with controller exit and no further
+cursor movement. These observations do not guarantee a latency bound.
+
 ## Checks
 
 ```sh
