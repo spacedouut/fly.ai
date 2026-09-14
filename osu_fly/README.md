@@ -63,6 +63,8 @@ that biological wiring is better than a random network.
 
 Import the OSZ in lazer, stay signed out, select the tutorial, use normal speed,
 and disable mouse-button input so cursor movement cannot accidentally click.
+Turn off high-precision mouse input so absolute XTest coordinates are respected.
+Keep a separate copy of the OSZ: importing it can consume the source archive.
 Do not enable Autoplay, Relax, Autopilot, or other assist mods.
 
 Extract `audio.mp3` from the OSZ, then start the controller **before** starting the
@@ -96,6 +98,32 @@ the default assumes fullscreen with the standard centered playfield.
 training uses seed 64). Live simulation runs at a 20 ms model timestep, with a
 60 ms teacher lead to compensate for propagation. Its timing and the client's
 score must be checked in a real attempt; offline cursor errors are not scores.
+
+## Measured gameplay
+
+Tested on osu!lazer **2026.804.2**, Linux/X11, fullscreen 1600×1200, as Guest,
+with **no mods**, normal speed, zero timing offset, and automatic audio alignment.
+The trained decoder and teacher lead were unchanged across these attempts.
+
+| Mode | Grade | Accuracy | Score | Max combo | Misses |
+|---|---|---:|---:|---:|---:|
+| Live network, fitted noise seed 64 | A | 93.52% | 698,780 | 47/73 | 2 |
+| Live network, new noise seed 65 | D | 31.14% | 21,138 | 13/73 | 23 |
+| Precomputed neural output, seed 65 | C | 70.72% | 217,588 | 26/73 | 12 |
+
+The fitted-seed live attempt hit 26/27 slider ticks, all 12 slider ends, and all
+13 spinner spins. It demonstrates actual cursor and button control through the
+network, but the weaker new-seed results show that this is not a robust controller.
+
+Live seed 65 also showed controller-loop stalls: after song time 15 seconds,
+11 emission intervals exceeded 100 ms, with a maximum of 689 ms. The precomputed
+replay's maximum interval was 36.9 ms. These are loop timestamps, not measured
+end-to-end input latency; both decoder sensitivity and scheduling need attention.
+Visual perception and unseen-map generalization were not tested.
+
+Escape and focus loss released a held Z and stopped the cursor in neural-replay
+checks. Abort responsiveness during live catch-up or audio synchronization remains
+unverified.
 
 ## Checks
 
