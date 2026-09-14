@@ -1,7 +1,8 @@
 # A fly-connectome cursor for osu!lazer
 
-A **replay-assisted motor experiment**, using the full MaleCNS network in `flybrain`.
-This is not an autonomous fly watching the screen. The teacher supplies cursor
+Two motor experiments using the full MaleCNS network in `flybrain`: the original
+**replay-assisted** controller below, and a **screenshot-driven circle prototype**
+described in [Vision](#vision). In replay-assisted mode, the teacher supplies cursor
 coordinates (including slider paths and spinner motion) and button timing from an
 osu! beatmap. A frozen spiking network processes those signals, and a trained
 linear decoder produces cursor coordinates and a button score.
@@ -124,6 +125,101 @@ Visual perception and unseen-map generalization were not tested.
 Escape and focus loss released a held Z and stopped the cursor in neural-replay
 checks. Abort responsiveness during live catch-up or audio synchronization remains
 unverified.
+
+## Vision
+
+```text
+MSS screen capture → OpenCV concentric-circle detector → shrinking-ring tracker
+  → estimated X/Y and tap signal → same frozen MaleCNS → synthetic-trained decoder
+  → XTest cursor and Z
+```
+
+This is engineered visual feature extraction, not a biological retina or learned
+image understanding inside the connectome. OpenCV supplies object geometry; a
+linear fit to recent ring radii estimates contact time. Only neural features
+enter the motor decoder. The live vision command reads no beatmap, audio, or
+replay, and has no song clock. Captured pixels are cropped to the playfield and
+resized to 512×384.
+
+Train on randomly generated movements and button pulses, using four noise seeds.
+The held-out validation uses new positions, a new neural seed, and a disconnected
+network control. A 60 ms target delay accounts for neural response time.
+
+```sh
+NUMBA_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
+  .venv/bin/python -m osu_fly.train_vision
+NUMBA_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
+  .venv/bin/python -m osu_fly.vision_play \
+  --decoder osu_fly/output/vision/decoder.npz --seed 100
+```
+
+Wait for “Ready”, focus the game, start the map, and press F8 after loading. F8
+only arms screen capture; its timing relative to the song is unimportant. Use the same fullscreen
+and mouse settings as above. Escape or focus loss stops input and releases Z.
+The default runtime is 160 seconds; `--seconds` changes it. `--rect` overrides the
+playfield crop, and `--lead-ms` adjusts visual anticipation for neural latency.
+Alternatively, `--arm-after 10` arms automatically ten seconds after “Ready”;
+this avoids opening lazer chat by pressing F8 during loading. The game must have
+focus when the countdown expires. `--frames-dir` saves sampled perception images
+for debugging (cropped images, not a fullscreen gameplay recording).
+
+On our CPU-only llvmpipe desktop, restarting lazer at 1024×768 fullscreen with
+VSync substantially reduced frozen perception frames and audio-clock warnings.
+Recording at 15 fps with two encoder threads reduced recording load. These
+settings are a tested workaround, not a guarantee of smooth timing; the first
+few seconds can still stall. Inspect captured frames as well as loop timings.
+
+For a separately labelled **non-neural diagnostic baseline**:
+
+```sh
+.venv/bin/python -m osu_fly.vision_play --detector-only
+```
+
+This mode sends the visual controller's output directly and must not be presented
+as fly gameplay. Comparing it with neural mode can separate perception failures
+from decoder failures.
+
+Each frame runs one simulation step, with no accumulated catch-up loop. The
+target period is 20 ms; slow frames stretch simulated time rather than trigger
+bursts of stale input. Logs include per-frame capture/detection/neural timings,
+detected circles, visual signals and neural outputs. These timings do not measure
+physical display-to-input latency.
+Countdown fits expire after 150 ms without a valid shrinking-ring estimate.
+Tracking preserves the initial hit-circle radius as the approach ring merges
+with it, rather than changing the predicted contact boundary.
+
+**Current scope:** circles and slider heads, with a 120 ms tap hold. No slider-path
+following, spinner recognition, or stacked-circle disambiguation. Skin effects,
+tutorial storyboard demonstrations, HUD circles, occlusion and low capture rates
+can confuse the detector. It is not yet a general osu! player. Offline motor
+validation and synthetic circle tests do not establish real gameplay performance.
+
+### Recorded vision results
+
+Revision `1566899`, osu!lazer 2026.804.2, Guest, no mods, normal speed,
+1024×768 fullscreen/VSync. Both neural attempts used the same synthetic decoder
+and seed 100, with no map-derived controller input.
+
+| Mode and map | Outcome | Accuracy | Score | Max combo | Misses |
+|---|---|---:|---:|---:|---:|
+| Detector-only tutorial | D, completed | 29.27% | 28,417 | 8/73 | 6 |
+| Live neural vision tutorial | D, completed | 19.90% | 18,906 | 8/73 | 7 |
+| Live neural vision, Faded Winter [Beginner] | Failed at 0:35 (71%) | 14.89% partial | 6,856 partial | 4 | Unavailable |
+
+The tutorial has zero HP drain, so completion alone is weak evidence. Both modes
+scored zero slider ticks, slider ends, and spinner spins. Real visual input did
+produce neural cursor movement and registered hits, but performance remains poor.
+The detector baseline also struggled, so neural decoding is not the only problem.
+
+The held-out attempt included about 12 seconds of song-select input before
+gameplay; its startup was not cleanly aligned to the intended countdown. The
+failure overlay did not provide a miss count. It was not retrained or retried.
+No renewed audio warning appeared in these runs. Changing cursor pixels mean
+the absence of identical neural screenshots cannot establish smooth rendering.
+
+Separate live checks confirmed Z was held before Escape and focus loss, then
+released within 2.9 ms and 19.7 ms respectively, with controller exit and no further
+cursor movement. These observations do not guarantee a latency bound.
 
 ## Checks
 
