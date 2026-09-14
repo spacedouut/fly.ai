@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import subprocess
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -10,6 +11,22 @@ from numpy.typing import NDArray
 from scipy.signal import fftconvolve
 
 RATE = 8000
+WINDOW = 0.5
+
+
+@dataclass
+class SongClock:
+    previous_epoch: float | None = None
+
+    def observe(
+        self, sample_end: float, position: float, confidence: float
+    ) -> float | None:
+        epoch = sample_end - WINDOW - position
+        previous = self.previous_epoch
+        self.previous_epoch = epoch if confidence >= 0.6 else None
+        if previous is not None and confidence >= 0.6 and abs(epoch - previous) < 0.04:
+            return (epoch + previous) / 2
+        return None
 
 
 def locate(
@@ -49,7 +66,11 @@ def synchronize(audio: Path, timeout: float = 90) -> float:
         check=True,
         capture_output=True,
     )
-    reference = np.frombuffer(decoded.stdout, dtype="<i2").astype(float) / 32768
+    reference = (
+        np.frombuffer(decoded.stdout, dtype="<i2")[: 15 * RATE].astype(float) / 32768
+    )
+    clock = SongClock()
+    window_bytes = int(RATE * WINDOW * 2)
     sink = subprocess.check_output(["pactl", "get-default-sink"], text=True).strip()
     process = subprocess.Popen(
         [
@@ -70,9 +91,9 @@ def synchronize(audio: Path, timeout: float = 90) -> float:
         if process.stdout is None:
             raise RuntimeError("Could not open audio capture.")
         while time.monotonic() < deadline:
-            raw = process.stdout.read(RATE * 2 * 2)
+            raw = process.stdout.read(window_bytes)
             end = time.monotonic() - 0.010
-            if len(raw) != RATE * 2 * 2:
+            if len(raw) != window_bytes:
                 raise RuntimeError("Audio capture ended before synchronization.")
             sample = np.frombuffer(raw, dtype="<i2").astype(float) / 32768
             position, confidence = locate(reference, sample)
@@ -80,8 +101,9 @@ def synchronize(audio: Path, timeout: float = 90) -> float:
                 f"Audio match: t={position:.3f}s, confidence={confidence:.3f}",
                 flush=True,
             )
-            if confidence > 0.12:
-                return end - 2 - position
+            epoch = clock.observe(end, position, confidence)
+            if epoch is not None:
+                return epoch
         raise TimeoutError(
             "No matching song audio. Check volume and the PulseAudio monitor."
         )

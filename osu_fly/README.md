@@ -66,8 +66,10 @@ and disable mouse-button input so cursor movement cannot accidentally click.
 Do not enable Autoplay, Relax, Autopilot, or other assist mods.
 
 Extract `audio.mp3` from the OSZ, then start the controller **before** starting the
-map. Leave the game focused. It listens to the desktop audio monitor and aligns
-it with the original track. Escape or switching to another app stops input and
+map. Pause the song-selection preview and leave the game focused. It listens to
+the desktop audio monitor and requires two confident, time-consistent matches
+within the first 15 seconds of the original track. Start it before playback;
+late starts time out. Escape or switching to another app stops gameplay input and
 releases the held key.
 
 ```sh
