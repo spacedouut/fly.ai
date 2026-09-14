@@ -77,15 +77,23 @@ class CircleDetector:
 class Track:
     circle: Circle
     seen: float
+    base_radius: float = field(init=False)
     history: list[tuple[float, float]] = field(default_factory=list)
     due: float | None = None
+    fitted_at: float = 0.0
     triggered: bool = False
+
+    def __post_init__(self) -> None:
+        self.base_radius = self.circle.radius
 
     def update(self, circle: Circle, now: float) -> None:
         self.circle, self.seen = circle, now
-        if circle.approach is None:
+        approach = circle.approach
+        if approach is None and circle.radius > self.base_radius + 3:
+            approach = circle.radius
+        if approach is None:
             return
-        self.history.append((now, circle.approach))
+        self.history.append((now, approach))
         self.history = [(t, r) for t, r in self.history if t >= now - 0.4]
         if len(self.history) < 3 or now - self.history[0][0] < 0.07:
             return
@@ -95,9 +103,10 @@ class Track:
         speed, radius = np.linalg.lstsq(design, points[:, 1], rcond=None)[0]
         residual = np.sqrt(np.mean((design @ [speed, radius] - points[:, 1]) ** 2))
         if -600 < speed < -12 and residual < 3:
-            due = now + (radius - circle.radius) / -speed
+            due = now + (radius - self.base_radius) / -speed
             if now - 0.08 < due < now + 2:
                 self.due = float(due)
+                self.fitted_at = now
 
 
 class VisionController:
@@ -136,6 +145,7 @@ class VisionController:
             if track.due is not None
             and not track.triggered
             and now - track.seen < 0.15
+            and now - track.fitted_at < 0.15
             and track.due > now - 0.12
         ]
         if candidates and now >= self.release_at:

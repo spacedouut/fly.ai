@@ -83,3 +83,37 @@ def test_lost_target_does_not_trigger_predicted_future_tap():
         controller.update([Circle(250, 190, 40, 120 - now * 80)], now)
     for now in np.arange(0.4, 2, 0.02):
         assert controller.update([], now)[2] == 0
+
+
+def test_frozen_countdown_expires_and_resumes_without_an_early_tap():
+    controller = VisionController(lead=0)
+    for now in np.arange(0, 0.4, 0.02):
+        controller.update([Circle(250, 190, 40, 120 - now * 80)], float(now))
+    for now in np.arange(0.4, 2, 0.02):
+        assert controller.update([Circle(250, 190, 40, 88)], float(now))[2] == 0
+    taps = []
+    for now in np.arange(2, 2.8, 0.02):
+        radius = 88 - (now - 2) * 80
+        output = controller.update(
+            [Circle(250, 190, 40, radius if radius > 46 else None)], float(now)
+        )
+        if output[2]:
+            taps.append(now)
+    assert controller.taps == 1
+    assert 2.56 <= taps[0] <= 2.65
+
+
+def test_approach_ring_merging_with_base_preserves_contact_time():
+    controller = VisionController(lead=0)
+    taps = []
+    for now in np.arange(0, 1.3, 0.02):
+        radius = 120 - now * 80
+        circle = (
+            Circle(250, 190, 40, radius)
+            if radius > 62
+            else Circle(250, 190, max(40, radius), None)
+        )
+        if controller.update([circle], float(now))[2]:
+            taps.append(now)
+    assert controller.taps == 1
+    assert 0.97 <= taps[0] <= 1.06

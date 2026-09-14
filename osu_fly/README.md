@@ -153,8 +153,8 @@ NUMBA_NUM_THREADS=2 OPENBLAS_NUM_THREADS=2 \
   --decoder osu_fly/output/vision/decoder.npz --seed 100
 ```
 
-Wait for “Ready”, focus the game, start the map, and press F8 after loading. F8 only arms screen
-capture; its timing relative to the song is unimportant. Use the same fullscreen
+Wait for “Ready”, focus the game, start the map, and press F8 after loading. F8
+only arms screen capture; its timing relative to the song is unimportant. Use the same fullscreen
 and mouse settings as above. Escape or focus loss stops input and releases Z.
 The default runtime is 160 seconds; `--seconds` changes it. `--rect` overrides the
 playfield crop, and `--lead-ms` adjusts visual anticipation for neural latency.
@@ -162,6 +162,12 @@ Alternatively, `--arm-after 10` arms automatically ten seconds after “Ready”
 this avoids opening lazer chat by pressing F8 during loading. The game must have
 focus when the countdown expires. `--frames-dir` saves sampled perception images
 for debugging (cropped images, not a fullscreen gameplay recording).
+
+On our CPU-only llvmpipe desktop, restarting lazer at 1024×768 fullscreen with
+VSync substantially reduced frozen perception frames and audio-clock warnings.
+Recording at 15 fps with two encoder threads reduced recording load. These
+settings are a tested workaround, not a guarantee of smooth timing; the first
+few seconds can still stall. Inspect captured frames as well as loop timings.
 
 For a separately labelled **non-neural diagnostic baseline**:
 
@@ -178,6 +184,9 @@ target period is 20 ms; slow frames stretch simulated time rather than trigger
 bursts of stale input. Logs include per-frame capture/detection/neural timings,
 detected circles, visual signals and neural outputs. These timings do not measure
 physical display-to-input latency.
+Countdown fits expire after 150 ms without a valid shrinking-ring estimate.
+Tracking preserves the initial hit-circle radius as the approach ring merges
+with it, rather than changing the predicted contact boundary.
 
 **Current scope:** circles and slider heads, with a 120 ms tap hold. No slider-path
 following, spinner recognition, or stacked-circle disambiguation. Skin effects,

@@ -56,7 +56,13 @@ def main() -> None:
                 brain.step(np.array([0.5, 0.5, 0.0]))
         print(
             f"Ready: {'DETECTOR ONLY' if args.detector_only else 'LIVE NEURAL VISION'}. "
-            f"Rect {desktop.rect}. Press F8 in osu! to start; Escape/focus loss stops.",
+            f"Rect {desktop.rect}. "
+            + (
+                f"Arming in {args.arm_after} seconds; "
+                if args.arm_after is not None
+                else "Press F8 in osu! to start; "
+            )
+            + "Escape/focus loss stops.",
             flush=True,
         )
         arm_at = (
