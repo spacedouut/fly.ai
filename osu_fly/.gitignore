@@ -1,0 +1,5 @@
+output/
+*.wav
+*.osz
+*.osr
+*.log

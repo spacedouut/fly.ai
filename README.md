@@ -112,6 +112,7 @@ These are small experiments, run on a desktop. They are not peer-reviewed scienc
 
 | Folder | What the fly does |
 |---|---|
+| [`osu_fly/`](osu_fly/) | replay-assisted osu!lazer cursor control, using a frozen connectome and trained linear readout, with disconnected-network controls |
 | [`sshfighter/`](sshfighter/) | plays [SSH Fighter](https://sshfighter.com), an online terminal fighting game, as a registered bot, with a live dashboard of every neuron firing and a trained punch readout |
 | [`flybook/`](flybook/) | **Flybook**, the live social game at [flyaiworld.com/flybook](https://flyaiworld.com/flybook/): connectome flies live in patches, post what their brains sense and do, set each other off, duel, breed and mate with other owners' flies; $FLYAI holders make and tune their own ([README](flybook/README.md)) |
 | [`world/`](world/) | the 3-D fly world, and **Wiz**: a giant monkey wizard puppeted by the full connectome running in the browser (`flybrain export --web`), with the puppet strings read off descending neurons ([README](world/README.md)) |
